@@ -9,7 +9,8 @@ services:
       - DEBUG=False  # Changed for production
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY:-}
+      - DEEPINFRA_MODEL=${DEEPINFRA_MODEL:-meta-llama/Meta-Llama-3-70B-Instruct}
     volumes:
       - uploads:/app/uploads  # Persistent storage
       - outputs:/app/outputs

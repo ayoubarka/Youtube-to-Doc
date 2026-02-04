@@ -106,7 +106,8 @@ cp .env.example .env
 
 - `ALLOWED_HOSTS`: Comma-separated list of allowed hosts
 - `YOUTUBE_API_KEY`: Optional YouTube Data API key for enhanced features
-- `OPENAI_API_KEY`: Optional OpenAI API key for AI-enhanced processing
+- `DEEPINFRA_API_KEY`: Optional DeepInfra API key for AI-enhanced processing (summary generation)
+- `DEEPINFRA_MODEL`: Optional DeepInfra model ID (default: meta-llama/Meta-Llama-3-70B-Instruct)
 - `RATE_LIMIT_PER_MINUTE`: Number of requests per minute per IP
 
 ### AWS S3 Integration (for cloud documentation links)

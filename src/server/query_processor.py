@@ -13,6 +13,46 @@ from .server_config import EXAMPLE_VIDEOS, MAX_DISPLAY_SIZE, templates
 from .server_utils import Colors
 import os
 from urllib.parse import urlparse, parse_qs
+from openai import AsyncOpenAI
+
+
+async def generate_ai_summary(transcript: str, language: str = "en") -> Optional[str]:
+    """Generate an AI summary of the transcript using DeepInfra."""
+    api_key = os.getenv("DEEPINFRA_API_KEY")
+    if not api_key:
+        return None
+        
+    try:
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url="https://api.deepinfra.com/v1/openai"
+        )
+        
+        # Truncate transcript to avoid context limit issues
+        # Llama 3 has 8k context window. 25k chars is approx 6k tokens.
+        truncated_transcript = transcript[:25000]
+        
+        prompt = (
+            f"Please provide a comprehensive summary of the following video transcript. "
+            f"The summary should be in {language} language. "
+            f"Highlight key points and main takeaways.\n\n"
+            f"Transcript:\n{truncated_transcript}"
+        )
+        
+        response = await client.chat.completions.create(
+            model=os.getenv("DEEPINFRA_MODEL", "meta-llama/Meta-Llama-3-70B-Instruct"),
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that summarizes video transcripts."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1500
+        )
+        
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"{Colors.RED}Error generating AI summary: {e}{Colors.END}")
+        return None
 
 
 async def process_query(
@@ -84,8 +124,11 @@ async def process_query(
         if transcript is None:
             print("WARNING: No transcript was extracted - checking reasons...")
         
+        # Generate AI Summary
+        summary = await generate_ai_summary(transcript, language) if transcript else None
+
         # Generate documentation content (markdown)
-        content_md = _generate_documentation(video_info, transcript, comments, include_comments)
+        content_md = _generate_documentation(video_info, transcript, comments, include_comments, summary)
 
         # Compute object key: docs/youtube/{video_id}.md
         video_id = video_info.get("video_id") or _extract_video_id_from_url(input_text)
@@ -165,8 +208,10 @@ async def process_query_core(
         processor = YoutubeProcessor()
         video_info, transcript, comments = await processor.process_video(query)
 
+        summary = await generate_ai_summary(transcript, language) if transcript else None
+
         content_md = _generate_documentation(
-            video_info, transcript, comments, include_comments
+            video_info, transcript, comments, include_comments, summary
         )
 
         video_id = video_info.get("video_id") or _extract_video_id_from_url(input_text)
@@ -226,7 +271,8 @@ def _generate_documentation(
     video_info: dict,
     transcript: Optional[str],
     comments: Optional[list],
-    include_comments: bool
+    include_comments: bool,
+    summary: Optional[str] = None
 ) -> str:
     """
     Generate formatted documentation from video information.
@@ -241,6 +287,8 @@ def _generate_documentation(
         Video comments if available.
     include_comments : bool
         Whether to include comments in documentation.
+    summary : Optional[str]
+        AI generated summary of the video.
 
     Returns
     -------
@@ -264,6 +312,11 @@ def _generate_documentation(
     
     doc_parts.append("\n")
     
+    # AI Summary
+    if summary:
+        doc_parts.append("## AI Summary\n")
+        doc_parts.append(f"{summary}\n\n")
+
     # Description
     if video_info.get('description'):
         doc_parts.append("## Description\n")
