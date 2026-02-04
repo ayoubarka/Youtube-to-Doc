@@ -6,10 +6,13 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DEBUG=True
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - DEBUG=False  # Changed for production
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     volumes:
-      - .:/app
+      - uploads:/app/uploads  # Persistent storage
+      - outputs:/app/outputs
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -18,13 +21,10 @@ services:
       retries: 3
       start_period: 40s
 
-  # Optional: Redis for caching (uncomment if needed)
-  # redis:
-  #   image: redis:7-alpine
-  #   ports:
-  #     - "6379:6379"
-  #   restart: unless-stopped
+volumes:
+  uploads:
+  outputs:
 
 networks:
   default:
-    name: youtubedoc-network 
+    name: youtubedoc-network
