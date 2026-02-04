@@ -101,7 +101,9 @@ class YoutubeProcessor:
         """Log the current proxy and API configuration from environment variables."""
         try:
             # Check proxy configurations
+            decodo_proxy = self._get_decodo_proxy_url()
             proxy_configs = {
+                "decodo": decodo_proxy is not None,
                 "webshare": {
                     "username": os.getenv("YTA_WEBSHARE_USERNAME"),
                     "password": "***" if os.getenv("YTA_WEBSHARE_PASSWORD") else None,
@@ -112,7 +114,9 @@ class YoutubeProcessor:
                 }
             }
             
-            if proxy_configs["webshare"]["username"]:
+            if proxy_configs["decodo"]:
+                logger.info("Decodo residential proxy configured")
+            elif proxy_configs["webshare"]["username"]:
                 logger.info("Webshare proxy credentials configured")
             elif any(proxy_configs["generic"].values()):
                 logger.info("Generic proxy URLs configured")
@@ -127,18 +131,45 @@ class YoutubeProcessor:
                 
         except Exception as e:
             logger.warning(f"Failed to log environment configuration: {e}")
+
+    def _get_decodo_proxy_url(self) -> Optional[str]:
+        """Get Decodo proxy URL if configured."""
+        if os.getenv('USE_PROXY', '').lower() == 'true':
+            username = os.getenv('PROXY_USERNAME')
+            password = os.getenv('PROXY_PASSWORD')
+            proxy_base = os.getenv('PROXY_URL', 'http://gate.decodo.com:10001')
+            
+            if username and password:
+                # Clean protocol from base if present
+                base_url = proxy_base.replace("http://", "").replace("https://", "")
+                return f"http://{username}:{password}@{base_url}"
+            return proxy_base
+        return None
     
     def _build_proxy_config(self) -> Optional[Any]:
         """Build a proxy configuration object from environment variables.
         
         Priority:
-        1. Webshare residential proxies (if credentials provided)
-        2. Generic HTTP/HTTPS proxies
-        3. None (direct connection)
+        1. Decodo residential proxies (if enabled)
+        2. Webshare residential proxies (if credentials provided)
+        3. Generic HTTP/HTTPS proxies
+        4. None (direct connection)
         
         Returns:
             Optional[ProxyConfig]: Configured proxy object or None if no proxy configured.
         """
+        # Decodo proxy configuration
+        decodo_proxy = self._get_decodo_proxy_url()
+        if decodo_proxy and GenericProxyConfig:
+            try:
+                logger.debug("Creating GenericProxyConfig for Decodo")
+                return GenericProxyConfig(
+                    http_url=decodo_proxy,
+                    https_url=decodo_proxy,
+                )
+            except Exception as e:
+                logger.error(f"Failed to create Decodo ProxyConfig: {e}")
+
         # Webshare proxy configuration
         webshare_username = os.getenv("YTA_WEBSHARE_USERNAME")
         webshare_password = os.getenv("YTA_WEBSHARE_PASSWORD")
@@ -284,7 +315,8 @@ class YoutubeProcessor:
         """
         def _extract():
             # Configure proxy for yt-dlp
-            http_proxy = os.getenv("YTA_HTTPS_PROXY") or os.getenv("HTTPS_PROXY") or \
+            decodo_proxy = self._get_decodo_proxy_url()
+            http_proxy = decodo_proxy or os.getenv("YTA_HTTPS_PROXY") or os.getenv("HTTPS_PROXY") or \
                         os.getenv("YTA_HTTP_PROXY") or os.getenv("HTTP_PROXY")
             
             ydl_opts = {
@@ -338,8 +370,9 @@ class YoutubeProcessor:
         def _extract():
             # Configure proxy for pytube
             proxies = None
-            http_proxy = os.getenv("YTA_HTTP_PROXY") or os.getenv("HTTP_PROXY")
-            https_proxy = os.getenv("YTA_HTTPS_PROXY") or os.getenv("HTTPS_PROXY")
+            decodo_proxy = self._get_decodo_proxy_url()
+            http_proxy = decodo_proxy or os.getenv("YTA_HTTP_PROXY") or os.getenv("HTTP_PROXY")
+            https_proxy = decodo_proxy or os.getenv("YTA_HTTPS_PROXY") or os.getenv("HTTPS_PROXY")
             
             if http_proxy or https_proxy:
                 proxies = {}

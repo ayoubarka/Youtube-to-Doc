@@ -155,12 +155,21 @@ Notes
 
 When deploying to cloud providers, YouTube often blocks requests from cloud IPs, causing `IpBlocked` or `RequestBlocked` errors. To fix this, configure rotating residential proxies:
 
-1) **Sign up for Webshare** (recommended by `youtube-transcript-api`):
+1) **Decodo Residential Proxies**:
+   Set `USE_PROXY=true` and provide credentials:
+   ```bash
+   USE_PROXY=true
+   PROXY_USERNAME=your_decodo_username
+   PROXY_PASSWORD=your_decodo_password
+   PROXY_URL=http://gate.decodo.com:10001  # Optional, default value
+   ```
+
+2) **Sign up for Webshare** (recommended by `youtube-transcript-api`):
    - Visit [webshare.io](https://www.webshare.io) and create an account
    - Purchase a "Rotating Residential" plan (NOT "Proxy Server" or "Static Residential")
    - Go to Proxies → Rotating Residential → Proxy Settings to get your credentials
 
-2) **Set environment variables** in your deployment:
+3) **Webshare Environment Variables** in your deployment:
 ```bash
 # Webshare credentials (base username/password)
 YTA_WEBSHARE_USERNAME=your_webshare_username
@@ -172,7 +181,7 @@ YTA_HTTP_PROXY=http://your_pod_username:your_password@p.webshare.io:80
 YTA_HTTPS_PROXY=http://your_pod_username:your_password@p.webshare.io:80
 ```
 
-3) **Alternative**: Use any HTTP/HTTPS proxy provider:
+4) **Alternative**: Use any HTTP/HTTPS proxy provider:
 ```bash
 YTA_HTTP_PROXY=http://user:pass@proxy-host:port
 YTA_HTTPS_PROXY=https://user:pass@proxy-host:port

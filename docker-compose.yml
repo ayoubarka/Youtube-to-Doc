@@ -11,6 +11,10 @@ services:
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
       - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY:-}
       - DEEPINFRA_MODEL=${DEEPINFRA_MODEL:-meta-llama/Meta-Llama-3-70B-Instruct}
+      - PROXY_USERNAME=${PROXY_USERNAME:-}
+      - PROXY_PASSWORD=${PROXY_PASSWORD:-}
+      - PROXY_URL=${PROXY_URL:-http://gate.decodo.com:10001}
+      - USE_PROXY=${USE_PROXY:-false}
     volumes:
       - uploads:/app/uploads  # Persistent storage
       - outputs:/app/outputs
